@@ -184,41 +184,58 @@ builder.Services.AddDbContext<SanSaludDbContext>(options =>
 
 ---
 
-## 🧪 7. Pruebas Unitarias Automatizadas (xUnit & Moq)
+## 🧪 7. Pruebas Unitarias y de Integración Automatizadas (xUnit, Moq & WebApplicationFactory)
 
-El proyecto incluye una suite completa de pruebas unitarias automatizadas ubicada en la carpeta `SanSaludAPI.Tests/`.
+El proyecto incluye una suite completa de **16 pruebas automatizadas** en la carpeta `SanSaludAPI.Tests/`, divididas en **Pruebas Unitarias** y **Pruebas de Integración**.
 
-### Características del proyecto de pruebas:
-- **Framework de pruebas:** [xUnit](https://xunit.net/)
-- **Librería de Mocking:** [Moq](https://github.com/devopsflex/Moq)
-- **Patrón utilizado:** AAA (Arrange, Act, Assert)
+### 🔹 A. Pruebas Unitarias (Unit Testing)
+Aíslan la lógica de negocio simulando la base de datos y repositorios mediante **Moq**.
 
-### Casos de prueba incluidos:
-1. `TurnoServiceTests.cs`:
-   - `CreateTurnoAsync_WithValidData_ReturnsCreatedTurnoResponseDTO`: Verifica la creación exitosa de un turno.
-   - `CreateTurnoAsync_WithPastDate_ThrowsInvalidTurnoDateException`: Comprueba que no se puedan agendar turnos en el pasado.
-   - `CreateTurnoAsync_WithNonExistentMedico_ThrowsMedicoNotFoundException`: Comprueba que falle si el médico no existe.
-   - `CreateTurnoAsync_WithNonExistentPaciente_ThrowsPacienteNotFoundException`: Comprueba que falle si el paciente no existe.
-   - `CreateTurnoAsync_WithOverlappingSchedule_ThrowsOverlappingScheduleException`: Valida la regla de negocio que impide la superposición de horarios para el mismo médico.
-   - `DeleteTurnoAsync_WithNonExistentId_ThrowsTurnoNotFoundException`: Valida que falle la eliminación de un turno inexistente.
+- **Librería de Mocking:** `Moq` (4.20.72)
+- **Archivos de prueba:**
+  - `TurnoServiceTests.cs`:
+    - `CreateTurnoAsync_WithValidData_ReturnsCreatedTurnoResponseDTO`: Creación exitosa de turno.
+    - `CreateTurnoAsync_WithPastDate_ThrowsInvalidTurnoDateException`: Rechazo de fechas en el pasado.
+    - `CreateTurnoAsync_WithNonExistentMedico_ThrowsMedicoNotFoundException`: Validación de médico inexistente.
+    - `CreateTurnoAsync_WithNonExistentPaciente_ThrowsPacienteNotFoundException`: Validación de paciente inexistente.
+    - `CreateTurnoAsync_WithOverlappingSchedule_ThrowsOverlappingScheduleException`: Validación de solapamiento de horarios (regla de negocio de 2 horas).
+    - `DeleteTurnoAsync_WithNonExistentId_ThrowsTurnoNotFoundException`: Eliminación de turno inexistente.
+  - `MedicoServiceTests.cs`:
+    - `GetAllMedicosAsync_ReturnsAllMedicosAsDTOs`: Listado de médicos.
+    - `GetMedicoByIdAsync_WhenExists_ReturnsMedicoResponseDTO`: Búsqueda por ID.
+    - `GetMedicoByIdAsync_WhenDoesNotExist_ReturnsNull`: Manejo de id no encontrado.
+    - `CreateMedicoAsync_SavesAndReturnsCreatedMedico`: Alta de médico.
 
-2. `MedicoServiceTests.cs`:
-   - `GetAllMedicosAsync_ReturnsAllMedicosAsDTOs`: Verifica la obtención y mapeo a DTO del listado de médicos.
-   - `GetMedicoByIdAsync_WhenExists_ReturnsMedicoResponseDTO`: Verifica la búsqueda por ID.
-   - `GetMedicoByIdAsync_WhenDoesNotExist_ReturnsNull`: Verifica el comportamiento cuando el médico no existe.
-   - `CreateMedicoAsync_SavesAndReturnsCreatedMedico`: Verifica el alta de nuevos médicos.
+---
 
-### ¿Cómo ejecutar las pruebas unitarias?
+### 🔹 B. Pruebas de Integración (Integration Testing)
+Prueban el flujo HTTP completo del servidor ASP.NET Core desde la solicitud HTTP hasta la base de datos de prueba en memoria (**SQLite in-memory**).
+
+- **Servidores de prueba:** `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory<Program>`)
+- **Base de datos de prueba:** `SQLite in-memory` (creada dinámicamente con `EnsureCreated()`).
+- **Archivos de prueba:**
+  - `MedicosControllerIntegrationTests.cs`:
+    - `GetMedicos_ReturnsSuccessAndJsonArray`: Petición HTTP `GET /api/medicos` devuelve `200 OK`.
+    - `CreateMedico_ReturnsSuccessAndCreatedMedico`: Petición HTTP `POST /api/medicos` registra el médico y responde con `201 Created`.
+    - `GetMedicoById_WhenNonExistent_ReturnsNotFound`: Petición HTTP `GET /api/medicos/{id}` responde `404 Not Found`.
+  - `TurnosControllerIntegrationTests.cs`:
+    - `CreateTurno_WithValidData_Returns201Created`: Petición HTTP `POST /api/turnos` registra un turno en el sistema.
+    - `CreateTurno_WhenOverlappingSchedule_Returns409Conflict`: Petición HTTP `POST /api/turnos` responde `409 Conflict` cuando se intenta agendar un turno solapado.
+    - `CreateTurno_WithPastDate_Returns400BadRequest`: Petición HTTP `POST /api/turnos` responde `400 Bad Request` ante fechas pasadas.
+
+---
+
+### 🚀 ¿Cómo ejecutar la suite completa de pruebas?
 Desde la terminal en la raíz del repositorio, ejecuta:
 
 ```bash
 dotnet test
 ```
 
-Verás una salida similar a:
+Salida esperada:
 ```text
 Serie de pruebas para SanSaludAPI.Tests.dll (.NETCoreApp,Version=v10.0)
-Correctas! - Con error: 0, Superado: 10, Omitido: 0, Total: 10
+Correctas! - Con error: 0, Superado: 16, Omitido: 0, Total: 16
 ```
 
 ---
