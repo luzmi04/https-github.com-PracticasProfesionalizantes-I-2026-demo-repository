@@ -1,6 +1,6 @@
-# 🏥 Clínica San Salud - API RESTful (.NET 9)
+# 🏥 Clínica San Salud - API RESTful (.NET 10)
 
-Bienvenido al repositorio del proyecto **Clínica San Salud API**. Esta es una aplicación de referencia desarrollada en **.NET 9 (C#)** pensada con fines educativos y profesionales para estudiantes de **Prácticas Profesionalizantes I** y materias afines a la Ingeniería de Software.
+Bienvenido al repositorio del proyecto **Clínica San Salud API**. Esta es una aplicación de referencia desarrollada en **.NET 10 (C#)** pensada con fines educativos y profesionales para estudiantes de **Prácticas Profesionalizantes I** y materias afines a la Ingeniería de Software.
 
 El sistema implementa una **API RESTful** para la gestión integral de turnos médicos, médicos y pacientes, aplicando buenas prácticas de arquitectura, desacoplamiento y diseño de software.
 
@@ -64,7 +64,7 @@ Clinica-San-Salud/
 ## 🚀 3. Requisitos Previos y Cómo Ejecutar
 
 ### Requisitos:
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) o superior.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) o superior.
 - Un editor de código como **VS Code**, **Visual Studio 2022+** o **JetBrains Rider**.
 - (Opcional) Cliente de API **Bruno** o navegador web.
 
