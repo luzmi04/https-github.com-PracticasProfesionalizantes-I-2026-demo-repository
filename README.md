@@ -13,6 +13,7 @@ El sistema implementa una **API RESTful** para la gestión integral de turnos m�
 4. [Documentación de API y Contratos (Scalar & OpenAPI)](#-4-documentación-de-api-y-contratos-scalar--openapi)
 5. [Colección de Bruno para Pruebas (QA / Estudiantes)](#-5-colección-de-bruno-para-pruebas-qa--estudiantes)
 6. [Conceptos Clave para el Aprendizaje](#-6-conceptos-clave-para-el-aprendizaje)
+7. [Pruebas Unitarias Automatizadas (xUnit & Moq)](#-7-pruebas-unitarias-automatizadas-xunit--moq)
 
 ---
 
@@ -180,6 +181,45 @@ builder.Services.AddDbContext<SanSaludDbContext>(options =>
     options.UseSqlite(connectionString));
 ```
 *Aprendizaje:* Para migrar a **PostgreSQL** o **SQL Server**, solo se debe instalar el paquete NuGet correspondiente y cambiar el proveedor en `Program.cs` sin modificar una sola línea de lógica SQL manual.
+
+---
+
+## 🧪 7. Pruebas Unitarias Automatizadas (xUnit & Moq)
+
+El proyecto incluye una suite completa de pruebas unitarias automatizadas ubicada en la carpeta `SanSaludAPI.Tests/`.
+
+### Características del proyecto de pruebas:
+- **Framework de pruebas:** [xUnit](https://xunit.net/)
+- **Librería de Mocking:** [Moq](https://github.com/devopsflex/Moq)
+- **Patrón utilizado:** AAA (Arrange, Act, Assert)
+
+### Casos de prueba incluidos:
+1. `TurnoServiceTests.cs`:
+   - `CreateTurnoAsync_WithValidData_ReturnsCreatedTurnoResponseDTO`: Verifica la creación exitosa de un turno.
+   - `CreateTurnoAsync_WithPastDate_ThrowsInvalidTurnoDateException`: Comprueba que no se puedan agendar turnos en el pasado.
+   - `CreateTurnoAsync_WithNonExistentMedico_ThrowsMedicoNotFoundException`: Comprueba que falle si el médico no existe.
+   - `CreateTurnoAsync_WithNonExistentPaciente_ThrowsPacienteNotFoundException`: Comprueba que falle si el paciente no existe.
+   - `CreateTurnoAsync_WithOverlappingSchedule_ThrowsOverlappingScheduleException`: Valida la regla de negocio que impide la superposición de horarios para el mismo médico.
+   - `DeleteTurnoAsync_WithNonExistentId_ThrowsTurnoNotFoundException`: Valida que falle la eliminación de un turno inexistente.
+
+2. `MedicoServiceTests.cs`:
+   - `GetAllMedicosAsync_ReturnsAllMedicosAsDTOs`: Verifica la obtención y mapeo a DTO del listado de médicos.
+   - `GetMedicoByIdAsync_WhenExists_ReturnsMedicoResponseDTO`: Verifica la búsqueda por ID.
+   - `GetMedicoByIdAsync_WhenDoesNotExist_ReturnsNull`: Verifica el comportamiento cuando el médico no existe.
+   - `CreateMedicoAsync_SavesAndReturnsCreatedMedico`: Verifica el alta de nuevos médicos.
+
+### ¿Cómo ejecutar las pruebas unitarias?
+Desde la terminal en la raíz del repositorio, ejecuta:
+
+```bash
+dotnet test
+```
+
+Verás una salida similar a:
+```text
+Serie de pruebas para SanSaludAPI.Tests.dll (.NETCoreApp,Version=v10.0)
+Correctas! - Con error: 0, Superado: 10, Omitido: 0, Total: 10
+```
 
 ---
 
