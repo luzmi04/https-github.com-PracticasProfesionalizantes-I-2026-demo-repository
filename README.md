@@ -14,6 +14,7 @@ El sistema implementa una **API RESTful** para la gestión integral de turnos m�
 5. [Colección de Bruno para Pruebas (QA / Estudiantes)](#-5-colección-de-bruno-para-pruebas-qa--estudiantes)
 6. [Conceptos Clave para el Aprendizaje](#-6-conceptos-clave-para-el-aprendizaje)
 7. [Pruebas Unitarias Automatizadas (xUnit & Moq)](#-7-pruebas-unitarias-automatizadas-xunit--moq)
+8. [IA Asistida: Memoria de Contexto e Indexación Semántica (AGENTS.md + Serena)](#-8-ia-asistida-memoria-de-contexto-e-indexación-semántica-agentsmd--serena)
 
 ---
 
@@ -239,5 +240,177 @@ Correctas! - Con error: 0, Superado: 16, Omitido: 0, Total: 16
 ```
 
 ---
+
+## 🤖 8. IA Asistida: Memoria de Contexto e Indexación Semántica (AGENTS.md + Serena)
+
+Este repositorio está preparado para desarrollarse **con ayuda de agentes de código con IA**
+(opencode, Claude Code, Codex CLI, Cursor, etc.). Los asistentes de IA son muy útiles, pero
+tienen dos limitaciones que este proyecto resuelve de forma didáctica:
+
+1. **No recuerdan nada entre sesiones**: cada vez que abrís el agente, empieza "de cero" y
+   debería releer decenas de archivos para entender la arquitectura (lo que consume tiempo,
+   tokens y genera errores).
+2. **Leen código como texto plano**: para encontrar una clase o método hacen búsquedas de texto
+   (`grep`), sin entender realmente la estructura del programa.
+
+Las herramientas que configuramos atacan cada problema:
+
+| Problema | Solución | Archivo/Herramienta |
+|---|---|---|
+| Falta de memoria entre sesiones | Documento de contexto que el agente lee automáticamente | `AGENTS.md` |
+| Lectura de código "sin entender" | Indexación semántica vía Language Server | `Serena` + `opencode.json` |
+
+---
+
+### 🔹 A. La memoria del proyecto: `AGENTS.md`
+
+#### ¿Qué es y para qué existe?
+`AGENTS.md` es un archivo **Markdown convencional** que vive en la raíz del repositorio.
+Los agentes de código lo leen automáticamente al iniciar cada sesión, antes de hacer nada más.
+Funciona como la "memoria a largo plazo" del proyecto: documentación escrita *pensada para una
+IA*, no para humanos.
+
+En este repositorio, `AGENTS.md` documenta:
+- **Qué es el proyecto** y su dominio (turnos médicos).
+- **Comandos esenciales**: cómo compilar, correr tests y levantar la API.
+- **La arquitectura en capas** y las reglas obligatorias del flujo Controller → Service → Repository.
+- **Convenciones de código** (DTOs manuales, excepciones tipadas, `AsNoTracking()`, comentarios en español...).
+- **Reglas de negocio clave** (duración de turnos, validación de solapamientos) y pendientes conocidos.
+
+#### Beneficios concretos
+- ✅ El agente **respeta las convenciones** desde la primera línea de código que escribe.
+- ✅ Se ahorran miles de tokens: no relee toda la estructura en cada sesión.
+- ✅ Cualquier compañero que use otro agente (Claude Code, Codex...) obtiene el mismo contexto.
+
+> 💡 **Aprendizaje:** Un buen `AGENTS.md` describe *reglas y decisiones* (el "porqué"),
+> no cosas obvias que el agente puede deducir leyendo el código. Si tu proyecto tiene una
+> regla de negocio o una convención de equipo, va ahí.
+
+#### Cómo crear uno en tu propio proyecto
+1. Creá un archivo llamado exactamente `AGENTS.md` en la raíz del repo.
+2. Escribí, con tus palabras, las secciones mínimas:
+   ```markdown
+   # AGENTS.md — [Nombre del proyecto]
+   ## Qué es          → 2-3 líneas sobre el propósito
+   ## Comandos        → compilar, testear, ejecutar
+   ## Arquitectura    → capas/carpetas y reglas de dependencia
+   ## Convenciones    → estilo, nombres, idioma de comentarios
+   ## Reglas de negocio → validaciones y restricciones importantes
+   ```
+3. Commitealo al repositorio para que todo el equipo se beneficie.
+
+---
+
+### 🔹 B. Indexación semántica con Serena
+
+#### ¿Qué es Serena y para qué existe?
+[Serena](https://github.com/oraios/serena) es un **servidor MCP de código abierto** (licencia MIT)
+que le da a cualquier agente de IA capacidades propias de un IDE: entiende el código a nivel de
+*símbolos* (clases, métodos, propiedades), no como texto plano.
+
+- **MCP** (*Model Context Protocol*) es un estándar abierto que permite a los LLMs conectarse a
+  herramientas externas, como si fueran plugins.
+- Serena usa por debajo **Language Servers** (el mismo protocolo LSP que usa VS Code), por lo que
+  soporta más de 40 lenguajes, incluyendo **C#/.NET**, Java, Python, TypeScript, Go, etc.
+
+Sin Serena, un agente busca así:
+```text
+grep "OverlappingScheduleException"   ← encuentra texto, no significado
+```
+
+Con Serena, el agente puede preguntar por conceptos:
+```text
+find_symbol("TurnoService")                    ← encuentra LA clase, donde sea que esté
+find_referencing_symbols("ValidateNoOverlappingTurnos")  ← quién usa este método
+rename_symbol(...)                             ← renombrado seguro en todo el proyecto
+get_diagnostics_for_file(...)                  ← errores de compilación en vivo
+```
+
+Esto significa navegación y refactorizaciones **más rápidas, confiables y baratas en tokens**.
+
+#### Instalación (una sola vez por máquina)
+
+Serena necesita [`uv`](https://docs.astral.sh/uv/) (gestor de Python). En macOS/Linux:
+
+```bash
+# 1. Instalar uv (queda en ~/.local/bin, no requiere sudo)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Instalar Serena
+uv tool install -p 3.13 serena-agent
+
+# 3. Verificar
+serena --version
+```
+
+#### Configuración por proyecto
+
+**Paso 1 — Registrar e indexar el proyecto** (crea `.serena/project.yml`):
+
+```bash
+cd ~/ruta/del/proyecto
+serena project create . --ls csharp --index
+```
+- `--ls csharp` indica el lenguaje (para web: `typescript`; Python: `python`, etc.).
+- `--index` pre-analiza todos los archivos y guarda el índice en caché (más rápido en cada sesión).
+
+**Paso 2 — Conectar Serena al agente** mediante un archivo `opencode.json` en la raíz del repo:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "serena": {
+      "type": "local",
+      "command": [
+        "~/.local/bin/serena", "start-mcp-server",
+        "--context", "ide",
+        "--project", "~/ruta/del/proyecto"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+Al abrir opencode dentro de esa carpeta, el servidor arranca solo, carga el índice y expone
+sus herramientas al modelo. Para otros clientes (Claude Code, Codex...) hay instrucciones
+específicas en la [documentación oficial](https://oraios.github.io/serena/02-usage/030_clients.html).
+
+#### ¿Qué herramientas gana el agente?
+
+| Herramienta | Para qué sirve |
+|---|---|
+| `find_symbol` | Encontrar clases/métodos por nombre, sin grep |
+| `find_referencing_symbols` | Ver todas las llamadas/usos de un símbolo |
+| `get_symbols_overview` | Ver el "esqueleto" de un archivo (como el outline del IDE) |
+| `replace_symbol_body` | Reemplazar un método completo de forma segura |
+| `rename_symbol` / `safe_delete_symbol` | Refactorizaciones atómicas |
+| `write_memory` / `read_memory` | Notas persistentes del proyecto entre sesiones |
+
+> 💡 **Aprendizaje:** Serena también incluye su propio sistema de **memorias**: notas que el
+> agente puede escribir y releer en sesiones futuras (ej.: "cómo se agregó la validación de
+> solapamientos"). Complementa muy bien a `AGENTS.md`: el primero es escrito *por el equipo*
+> (decisiones), las memorias las escribe *el propio agente* (hallazgos).
+
+#### Aplicarlo en tus propios proyectos
+1. Elegí el lenguaje correcto en `--ls` (ver lista completa en la doc).
+2. Agregá carpetas generadas a `ignored_paths` en `.serena/project.yml` (en este repo ignoramos
+   `notebooklm/`, `bin/` y `obj/`) para indexar solo código real.
+3. Commiteá `.serena/project.yml` y `opencode.json` junto con `AGENTS.md`: todo el equipo
+   comparte la misma configuración.
+
+---
+
+### 🔹 C. Resumen: ¿con qué archivos trabaja la IA en este repo?
+
+```text
+Clinica-San-Salud/
+├── AGENTS.md            # 📝 Memoria del proyecto: lo escribe el equipo, lo lee el agente
+├── opencode.json        # 🔌 Registro del servidor MCP (Serena) para opencode
+└── .serena/
+    ├── project.yml      # ⚙️ Configuración de indexación (lenguaje, rutas ignoradas)
+    └── *.cache          # 🧠 Índice semántico generado por el language server
+```
 
 ¡Esperamos que este proyecto sirva como una guía práctica y clara para dominar el desarrollo de Web APIs modernas en .NET! 🚀
