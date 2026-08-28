@@ -33,6 +33,9 @@ builder.Services.AddScoped<SanSaludAPI.BusinessLogic.ITurnoService, SanSaludAPI.
 builder.Services.AddScoped<SanSaludAPI.BusinessLogic.IMedicoService, SanSaludAPI.BusinessLogic.MedicoService>();
 builder.Services.AddScoped<SanSaludAPI.BusinessLogic.IPacienteService, SanSaludAPI.BusinessLogic.PacienteService>();
 
+// Database initializer
+builder.Services.AddTransient<SanSaludAPI.DataAccess.DatabaseInitializer>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -47,6 +50,23 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Ejecutar inicializador de base de datos al iniciar
+using (var scope = app.Services.CreateScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<SanSaludAPI.DataAccess.DatabaseInitializer>();
+    try
+    {
+        // Esperar de forma sincrona porque Program.cs no es async en este punto
+        initializer.InitializeAsync().GetAwaiter().GetResult();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error inicializando la base de datos");
+        throw;
+    }
+}
 
 app.Run();
 
